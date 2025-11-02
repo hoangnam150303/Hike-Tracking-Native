@@ -2,13 +2,13 @@ import { Picker } from "@react-native-picker/picker";
 import React, { useState } from "react";
 import {
     FlatList,
-    ScrollView,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
+import Card from "../components/Card";
 
 export default function AllHikesScreen() {
     const [search, setSearch] = useState("");
@@ -20,6 +20,13 @@ export default function AllHikesScreen() {
         { id: "4", name: "Llyn Idwal", length: "6.1 km" },
     ]);
 
+    const images = [
+        require("../assets/hero1.jpg"),
+        require("../assets/hero2.jpg"),
+        require("../assets/hero3.jpg"),
+        require("../assets/hero4.jpg"),
+    ];
+
     const handleSearch = () => {
         console.log("Searching for:", search);
     };
@@ -29,83 +36,88 @@ export default function AllHikesScreen() {
     };
 
     return (
-        <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-            {/* Page Title */}
-            <Text style={styles.pageTitle}>All Hikes</Text>
+        <FlatList
+            data={filteredHikes}
+            keyExtractor={(item) => item.id}
+            numColumns={2}
+            showsVerticalScrollIndicator={false}
+            columnWrapperStyle={styles.cardRow}
+            ListHeaderComponent={
+                <>
+                    {/* --- PAGE TITLE --- */}
+                    <Text style={styles.pageTitle}>All Hikes</Text>
 
-            {/* Search Row */}
-            <View style={styles.searchRow}>
-                <TextInput
-                    style={styles.searchInput}
-                    placeholder="Search hikes..."
-                    value={search}
-                    onChangeText={setSearch}
-                />
-                <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
-                    <Text style={styles.searchButtonText}>Search</Text>
-                </TouchableOpacity>
-            </View>
-
-            {/* Filter Buttons */}
-            <View style={styles.filterRow}>
-                <TouchableOpacity
-                    style={[styles.filterButton, { backgroundColor: "#2E7D32" }]}
-                    onPress={() => handleFilter("length")}
-                >
-                    <Text style={styles.filterText}>Length</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={[styles.filterButton, { backgroundColor: "#E65100" }]}
-                    onPress={() => handleFilter("date")}
-                >
-                    <Text style={styles.filterText}>Date</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={[styles.filterButton, { backgroundColor: "#0D47A1" }]}
-                    onPress={() => handleFilter("parking")}
-                >
-                    <Text style={styles.filterText}>Parking</Text>
-                </TouchableOpacity>
-            </View>
-
-            {/* Difficulty Dropdown */}
-            <Text style={styles.label}>Filter by Difficulty</Text>
-            <View style={styles.pickerContainer}>
-                <Picker
-                    selectedValue={difficulty}
-                    onValueChange={(itemValue) => setDifficulty(itemValue)}
-                >
-                    <Picker.Item label="Select difficulty" value="" />
-                    <Picker.Item label="Easy" value="Easy" />
-                    <Picker.Item label="Moderate" value="Moderate" />
-                    <Picker.Item label="Hard" value="Hard" />
-                </Picker>
-            </View>
-
-            {/* Hikes Grid */}
-            <FlatList
-                data={filteredHikes}
-                keyExtractor={(item) => item.id}
-                numColumns={2}
-                columnWrapperStyle={styles.cardRow}
-                renderItem={({ item }) => (
-                    <View style={styles.card}>
-                        <Text style={styles.hikeName}>{item.name}</Text>
-                        <Text style={styles.hikeDetail}>{item.length}</Text>
+                    {/* --- SEARCH BAR --- */}
+                    <View style={styles.searchRow}>
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Search hikes..."
+                            value={search}
+                            onChangeText={setSearch}
+                        />
+                        <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
+                            <Text style={styles.searchButtonText}>Search</Text>
+                        </TouchableOpacity>
                     </View>
-                )}
-            />
-        </ScrollView>
+
+                    {/* --- FILTER BUTTONS --- */}
+                    <View style={styles.filterRow}>
+                        <TouchableOpacity
+                            style={[styles.filterButton, { backgroundColor: "#2E7D32" }]}
+                            onPress={() => handleFilter("length")}
+                        >
+                            <Text style={styles.filterText}>Length</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.filterButton, { backgroundColor: "#E65100" }]}
+                            onPress={() => handleFilter("date")}
+                        >
+                            <Text style={styles.filterText}>Date</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.filterButton, { backgroundColor: "#0D47A1" }]}
+                            onPress={() => handleFilter("parking")}
+                        >
+                            <Text style={styles.filterText}>Parking</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* --- DIFFICULTY PICKER --- */}
+                    <Text style={styles.label}>Filter by Difficulty</Text>
+                    <View style={styles.pickerContainer}>
+                        <Picker
+                            selectedValue={difficulty}
+                            onValueChange={(itemValue) => setDifficulty(itemValue)}
+                        >
+                            <Picker.Item label="Select difficulty" value="" />
+                            <Picker.Item label="Easy" value="Easy" />
+                            <Picker.Item label="Moderate" value="Moderate" />
+                            <Picker.Item label="Hard" value="Hard" />
+                        </Picker>
+                    </View>
+                </>
+            }
+            renderItem={({ item, index }) => (
+                <Card
+                    key={item.id}
+                    id={item.id}
+                    title={item.name}
+                    length={item.length}
+                    image={images[index % images.length]}
+                />
+            )}
+            contentContainerStyle={styles.container}
+        />
     );
 }
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
         backgroundColor: "#FAF9FF",
         padding: 16,
+        paddingBottom: 40,
     },
     pageTitle: {
         fontSize: 24,
@@ -169,29 +181,5 @@ const styles = StyleSheet.create({
     },
     cardRow: {
         justifyContent: "space-between",
-    },
-    card: {
-        backgroundColor: "#fff",
-        borderRadius: 10,
-        padding: 14,
-        flex: 1,
-        margin: 4,
-        alignItems: "center",
-        justifyContent: "center",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 2,
-    },
-    hikeName: {
-        fontWeight: "bold",
-        color: "#000",
-        textAlign: "center",
-        marginBottom: 4,
-    },
-    hikeDetail: {
-        color: "#555",
-        fontSize: 13,
     },
 });

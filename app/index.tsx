@@ -1,5 +1,6 @@
+import Card from "@/components/Card";
 import { Link } from "expo-router";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dimensions,
   Image,
@@ -10,6 +11,9 @@ import {
   View,
 } from "react-native";
 import Carousel from "react-native-reanimated-carousel";
+import { useUser } from "../context/UserContext";
+import { getAllHikes, getUserHikes } from "../utils/dbhelper"; // 🔗 lấy từ db
+
 const { width } = Dimensions.get("window");
 
 export default function Index() {
@@ -20,11 +24,38 @@ export default function Index() {
     require("../assets/hero4.jpg"),
   ];
 
+  const { user, setUser } = useUser();
+  const [userHikes, setUserHikes] = useState<any[]>([]);
+  const [allHikes, setAllHikes] = useState<any[]>([]);
+
+  const handleLogout = () => setUser(null);
+
+  // 🧭 Fetch dữ liệu từ DB
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        if (user) {
+          const myHikes = await getUserHikes(user.user_id);
+          setUserHikes(myHikes);
+        } else {
+          setUserHikes([]);
+        }
+
+        const hikes = await getAllHikes();
+        setAllHikes(hikes);
+      } catch (err) {
+        console.error("Fetch hikes error:", err);
+      }
+    };
+
+    fetchData();
+    console.log(user?.user_id)
+  }, [user]); // refetch khi user login/logout
+
   return (
     <ScrollView style={styles.container}>
-
+      {/* --- HERO --- */}
       <View style={styles.heroCard}>
-
         <Carousel
           width={width}
           height={400}
@@ -38,22 +69,31 @@ export default function Index() {
           )}
         />
 
-
         <View style={styles.header}>
           <Image
             source={require("../assets/map_marker.png")}
             style={styles.logo}
             resizeMode="contain"
           />
-
-          <Link href="/login" style={styles.loginButton}>
-            <Text style={styles.loginText}>Login</Text>
-          </Link>
+          {user ? (
+            <View style={styles.loggedInContainer}>
+              <TouchableOpacity onPress={handleLogout} style={styles.loginButton}>
+                <Text style={styles.loginText}>Logout</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <Link href="/login" style={styles.loginButton}>
+              <Text style={styles.loginText}>Login</Text>
+            </Link>
+          )}
         </View>
 
-
         <View style={styles.centerContent}>
-          <Text style={styles.heroText}>Take a hike,{"\n"}find yourself</Text>
+          <Text style={styles.heroText}>
+            {user
+              ? `Hello, ${user.username}!👋`
+              : "Take a hike,\nfind yourself"}
+          </Text>
 
           <Link href="/create-page" style={styles.ctaButton}>
             <Text style={styles.ctaText}>Check In Now!</Text>
@@ -61,62 +101,82 @@ export default function Index() {
         </View>
       </View>
 
-
+      {/* --- YOUR HIKES --- */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Your Hike</Text>
-
         <Link href="/all-hikes">
-          <Text style={styles.seeMore}>See More</Text></Link>
-
+          <Text style={styles.seeMore}>See More</Text>
+        </Link>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-        {[1, 2, 3].map((item) => (
-          <View key={item} style={styles.card}>
-            <Text style={styles.cardText}>Hike {item}</Text>
-          </View>
-        ))}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.horizontalScroll}
+      >
+        {userHikes.length > 0 ? (
+          userHikes.map((hike) => (
+            <View key={hike.hike_id} style={{ marginRight: 10 }}>
+              <Card
+                id={hike.hike_id.toString()}
+                title={hike.hike_name}
+                length={hike.length.toString()}
+                image={
+                  hike.photo_uri
+                    ? { uri: hike.photo_uri }
+                    : images[hike.hike_id % images.length]
+                }
+              />
+            </View>
+          ))
+        ) : (
+          <Text style={{ paddingHorizontal: 20, color: "#555" }}>
+            {user ? "You have no hikes yet." : "Login to view your hikes."}
+          </Text>
+        )}
       </ScrollView>
 
-
+      {/* --- ALL HIKES --- */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>All Hikes</Text>
-        <TouchableOpacity>
+        <Link href="/all-hikes">
           <Text style={styles.seeMore}>See More</Text>
-        </TouchableOpacity>
+        </Link>
       </View>
 
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-        {[4, 5, 6].map((item) => (
-          <View key={item} style={styles.card}>
-            <Text style={styles.cardText}>Hike {item}</Text>
-          </View>
-        ))}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.horizontalScroll}
+      >
+        {allHikes.length > 0 ? (
+          allHikes.map((hike) => (
+            <View key={hike.hike_id} style={{ marginRight: 10 }}>
+              <Card
+                id={hike.hike_id.toString()}
+                title={hike.hike_name}
+                length={hike.length.toString()}
+                image={
+                  hike.photo_uri
+                    ? { uri: hike.photo_uri }
+                    : images[hike.hike_id % images.length]
+                }
+              />
+            </View>
+          ))
+        ) : (
+          <Text style={{ paddingHorizontal: 20, color: "#555" }}>
+            No hikes available yet.
+          </Text>
+        )}
       </ScrollView>
     </ScrollView>
   );
 }
 
+// --- STYLE ---
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  heroCard: {
-    width: "100%",
-    height: 400,
-    backgroundColor: "#2e7d32",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  heroImage: {
-    width: "100%",
-    height: 400,
-  },
+  container: { flex: 1, backgroundColor: "#fff" },
   header: {
     position: "absolute",
     top: 50,
@@ -126,21 +186,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  logo: {
-    width: 40,
-    height: 40,
-  },
+  logo: { width: 40, height: 40 },
   loginButton: {
     backgroundColor: "rgba(255,255,255,0.4)",
     borderRadius: 30,
     paddingVertical: 8,
     paddingHorizontal: 20,
   },
-  loginText: {
-    color: "#000",
-    fontWeight: "bold",
-    fontSize: 14,
-  },
+  loginText: { color: "#000", fontWeight: "bold", fontSize: 14 },
+  loggedInContainer: { alignItems: "flex-end" },
   centerContent: {
     position: "absolute",
     top: 0,
@@ -157,6 +211,9 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "bold",
     marginBottom: 20,
+    textShadowColor: "rgba(0,0,0,0.75)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   ctaButton: {
     backgroundColor: "rgba(255,255,255,0.5)",
@@ -164,11 +221,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 30,
   },
-  ctaText: {
-    color: "#000",
-    fontWeight: "bold",
-    fontSize: 18,
-  },
+  ctaText: { color: "#000", fontWeight: "bold", fontSize: 18 },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -176,32 +229,23 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingHorizontal: 20,
   },
-  sectionTitle: {
-    color: "#000",
-    fontSize: 20,
-    fontWeight: "bold",
-  },
+  sectionTitle: { color: "#000", fontSize: 20, fontWeight: "bold" },
   seeMore: {
     color: "#000",
     fontSize: 16,
     fontWeight: "bold",
     textDecorationLine: "underline",
   },
-  horizontalScroll: {
-    marginTop: 10,
-    paddingHorizontal: 16,
+  horizontalScroll: { marginTop: 10, paddingHorizontal: 16 },
+  heroCard: {
+    width: "100%",
+    height: 400,
+    backgroundColor: "#2e7d32",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  card: {
-    width: 160,
-    height: 180,
-    backgroundColor: "#f0f0f0",
-    borderRadius: 16,
-    marginRight: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cardText: {
-    color: "#555",
-    fontWeight: "600",
-  },
+  heroImage: { width: "100%", height: 400 },
 });

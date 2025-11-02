@@ -1,25 +1,67 @@
+import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-  View,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
+  View,
 } from "react-native";
-import { router } from "expo-router"; // nếu bạn dùng expo-router
+import Toast from "react-native-toast-message";
+import { checkEmail, insertUser } from "../utils/dbhelper";
 
 export default function RegisterScreen() {
   const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
 
-  const handleRegister = () => {
-    // Ở đây bạn có thể thêm logic gọi API / validate form
-    Alert.alert("Register", `Username: ${username}\nEmail: ${email}`);
-    // Ví dụ: sau khi đăng ký thành công -> quay lại login
-    router.push("/login");
+  const handleRegister = async () => {
+    if (!username || !email || !password) {
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Please fill in all fields",
+      });
+      return;
+    }
+
+    try {
+      const exists = await checkEmail(email);
+      if (exists) {
+        Toast.show({
+          type: "error",
+          text1: "Email already exists",
+          text2: "Please use another email.",
+        });
+        return;
+      }
+
+      const success = await insertUser(email, password, username);
+      if (success) {
+        Toast.show({
+          type: "success",
+          text1: "Registration Successful 🎉",
+          text2: "Your account has been created.",
+        });
+
+        setTimeout(() => {
+          router.push("/login");
+        }, 1500);
+      } else {
+        Toast.show({
+          type: "error",
+          text1: "Registration Failed",
+          text2: "Please try again later.",
+        });
+      }
+    } catch (error) {
+      console.error("Register error:", error);
+      Toast.show({
+        type: "error",
+        text1: "Unexpected error occurred",
+      });
+    }
   };
 
   return (

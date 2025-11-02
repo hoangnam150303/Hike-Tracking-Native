@@ -1,4 +1,4 @@
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router"; // 1. Import useRouter
 import React, { useState } from "react";
 import {
     Alert,
@@ -9,13 +9,37 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-
+import { useUser } from "../context/UserContext";
+import { login } from "../utils/dbhelper";
 export default function LoginScreen() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const router = useRouter(); // 3. Khởi tạo router
+    const { setUser } = useUser();
+    // 4. Cập nhật handleLogin
+    const handleLogin = async () => {
+        // Kiểm tra đầu vào đơn giản
+        if (!email.trim() || !password.trim()) {
+            Alert.alert("Error", "Please enter both email and password.");
+            return;
+        }
 
-    const handleLogin = () => {
-        Alert.alert("Login", `Email: ${email}\nPassword: ${password}`);
+        try {
+            // Gọi hàm login từ dbhelper
+            const userData = await login(email, password);
+
+            if (userData) {
+                // Hàm login đã tự hiển thị Toast
+                // 5. Điều hướng đến trang chủ sau khi login thành công
+                // Dùng 'replace' để người dùng không thể "back" về trang 
+                setUser(userData);
+                router.replace("/"); // Giả sử 'all-hikes' là trang chủ của bạn
+            }
+            // Nếu 'success' là false, hàm login trong dbhelper đã tự hiển thị Toast lỗi
+        } catch (error) {
+            console.error("Login component error:", error);
+            Alert.alert("Error", "An unexpected error occurred during login.");
+        }
     };
 
     return (
@@ -33,6 +57,7 @@ export default function LoginScreen() {
                     placeholder="Email"
                     placeholderTextColor="#999"
                     keyboardType="email-address"
+                    autoCapitalize="none" // Thêm vào để tắt tự động viết hoa
                     value={email}
                     onChangeText={setEmail}
                 />

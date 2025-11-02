@@ -1,7 +1,7 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
 import * as ImagePicker from "expo-image-picker";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
     Alert,
@@ -13,8 +13,12 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-
+import Toast from "react-native-toast-message";
+import { useUser } from "../context/UserContext";
+import { insertHike } from "../utils/dbhelper"; // 🔗 import từ file bạn có sẵn
 export default function CreateHikeScreen() {
+    const router = useRouter();
+
     const [hikeName, setHikeName] = useState("");
     const [location, setLocation] = useState("");
     const [date, setDate] = useState<Date | null>(null);
@@ -26,14 +30,15 @@ export default function CreateHikeScreen() {
     const [weather, setWeather] = useState("");
     const [companions, setCompanions] = useState("");
     const [photo, setPhoto] = useState<string | null>(null);
-
-    // 🗓 Handle Date
+    const { user, setUser } = useUser();
+    const user_id = user?.user_id;
+    // 🗓 Pick Date
     const handlePickDate = (event: any, selectedDate?: Date) => {
         setShowDatePicker(false);
         if (selectedDate) setDate(selectedDate);
     };
 
-    // 🖼 Handle Image
+    // 🖼 Pick Photo
     const handlePickPhoto = async () => {
         const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -41,14 +46,71 @@ export default function CreateHikeScreen() {
             aspect: [4, 3],
             quality: 1,
         });
-        if (!result.canceled) {
-            setPhoto(result.assets[0].uri);
-        }
+        if (!result.canceled) setPhoto(result.assets[0].uri);
     };
 
-    // ✅ Handle Submit
-    const handleSubmit = () => {
-        Alert.alert("Submitted", "Your hike record has been created!");
+    // submit
+    const handleSubmit = async () => {
+        // 1. Kiểm tra các field bắt buộc
+        if (!hikeName || !location || !date || !parking || !length || !difficulty) {
+            Toast.show({
+                type: "error",
+                text1: "Missing Information",
+                text2: "Please fill in all required fields (*)",
+            });
+            return;
+        }
+
+        // --- 2. Thêm bước kiểm tra "Length" là số hợp lệ ---
+        const numericLength = parseFloat(length);
+        if (isNaN(numericLength)) {
+            Toast.show({
+                type: "error",
+                text1: "Invalid Input",
+                text2: "Length of Hike must be a valid number (e.g. 5.2).",
+            });
+            return; // Dừng lại nếu length không phải là số
+        }
+        // ----------------------------------------------------
+
+        // 3. Lấy user_id (Cách của bạn đã đúng)
+        // Nếu user không đăng nhập (user_id là undefined), nó sẽ dùng 0.
+        const currentUserId = user_id || 0;
+        if (!user_id) {
+            console.warn("User not logged in. Saving hike with user_id 0.");
+        }
+
+        // 4. Gọi insertHike với dữ liệu sạch
+        const success = await insertHike(
+            hikeName.trim(),
+            location.trim(),
+            date.toISOString(),
+            parking,
+            numericLength, // <-- Dùng biến đã được validate
+            difficulty,
+            description?.trim() || "",
+            weather || "",
+            companions || "",
+            photo || "",
+            currentUserId // <-- Dùng biến đã được gán
+        );
+
+        if (success) {
+            Alert.alert("✅ Success", "Your hike record has been saved!");
+            // Reset form
+            setHikeName("");
+            setLocation("");
+            setDate(null);
+            setParking(null);
+            setLength("");
+            setDifficulty("");
+            setDescription("");
+            setWeather("");
+            setCompanions("");
+            setPhoto(null);
+
+            router.push("/"); // quay lại home
+        }
     };
 
     return (
@@ -73,7 +135,7 @@ export default function CreateHikeScreen() {
                 onChangeText={setLocation}
             />
 
-            {/* Date Picker */}
+            {/* Date */}
             <Text style={styles.label}>Date of Hike *</Text>
             <View style={styles.dateRow}>
                 <Text style={styles.dateText}>
@@ -92,7 +154,6 @@ export default function CreateHikeScreen() {
                     mode="date"
                     display="default"
                     themeVariant="dark"
-                    
                     onChange={handlePickDate}
                 />
             )}
@@ -190,26 +251,20 @@ export default function CreateHikeScreen() {
                 <Text style={styles.submitText}>Submit Hike Record</Text>
             </TouchableOpacity>
 
-            {/* Back Home */}
+            {/* Back */}
             <Link href="/" style={styles.backText}>
                 Back To Home Page
             </Link>
+
+            <Toast />
         </ScrollView>
     );
 }
 
+// === STYLE ===
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        padding: 20,
-        backgroundColor: "#fff",
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: "bold",
-        color: "#000",
-        marginBottom: 24,
-    },
+    container: { flex: 1, padding: 20, backgroundColor: "#fff" },
+    title: { fontSize: 24, fontWeight: "bold", color: "#000", marginBottom: 24 },
     label: {
         fontSize: 16,
         fontWeight: "bold",
@@ -230,11 +285,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
     },
-    dateText: {
-        color: "#666",
-        padding: 10,
-        flex: 1,
-    },
+    dateText: { color: "#666", padding: 10, flex: 1 },
     smallButton: {
         backgroundColor: "#000",
         borderRadius: 6,
@@ -242,15 +293,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         alignItems: "center",
     },
-    smallButtonText: {
-        color: "#fff",
-        fontWeight: "bold",
-    },
-    radioGroup: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginTop: 6,
-    },
+    smallButtonText: { color: "#fff", fontWeight: "bold" },
+    radioGroup: { flexDirection: "row", alignItems: "center", marginTop: 6 },
     radioOption: {
         flexDirection: "row",
         alignItems: "center",
@@ -264,12 +308,8 @@ const styles = StyleSheet.create({
         borderColor: "#000",
         marginRight: 8,
     },
-    radioSelected: {
-        backgroundColor: "#000",
-    },
-    radioLabel: {
-        color: "#000",
-    },
+    radioSelected: { backgroundColor: "#000" },
+    radioLabel: { color: "#000" },
     pickerContainer: {
         borderWidth: 1,
         borderColor: "#ddd",
@@ -289,11 +329,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginTop: 30,
     },
-    submitText: {
-        color: "#fff",
-        fontWeight: "bold",
-        fontSize: 16,
-    },
+    submitText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
     backText: {
         color: "#000",
         fontWeight: "bold",
