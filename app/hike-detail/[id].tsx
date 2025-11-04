@@ -4,7 +4,7 @@ import {
     ActivityIndicator,
     Alert,
     Image,
-    KeyboardAvoidingView, // Giữ lại
+    KeyboardAvoidingView,
     Platform,
     ScrollView,
     StyleSheet,
@@ -16,31 +16,40 @@ import {
 import Toast from "react-native-toast-message";
 import { useUser } from "../../context/UserContext";
 import {
+    deleteComment,
+    deleteHike,
+    deleteObservation,
     getCommentsByHike,
     getHikeById,
-    getObservationsByHike
+    getObservationsByHike,
+    insertComment,
+    updateComment,
+    updateObservation,
 } from "../../utils/dbhelper";
 
 export default function HikeDetailScreen() {
     const router = useRouter();
     const { user } = useUser();
 
-    // --- Lấy ID ---
     const { id } = useLocalSearchParams();
     const hikeId = Array.isArray(id) ? id[0] : id;
     const hikeIdNumber = parseInt(hikeId || "0", 10);
 
-    // --- States ---
     const [isLoading, setIsLoading] = useState(true);
     const [hike, setHike] = useState<any | null>(null);
     const [observations, setObservations] = useState<any[]>([]);
     const [comments, setComments] = useState<any[]>([]);
+
+    // COMMENT STATES
     const [newComment, setNewComment] = useState("");
     const [editingComment, setEditingComment] = useState<any | null>(null);
 
-    // === CÁC HÀM TẢI DỮ LIỆU ===
+    // OBSERVATION STATES
+    const [newObservation, setNewObservation] = useState("");
+    const [editingObservation, setEditingObservation] = useState<any | null>(null);
+
+    // === LOAD DATA ===
     const loadHikeData = async () => {
-        // ... (Giữ nguyên hàm loadHikeData)
         setIsLoading(true);
         try {
             const [hikeData, obsData, commData] = await Promise.all([
@@ -48,9 +57,8 @@ export default function HikeDetailScreen() {
                 getObservationsByHike(hikeIdNumber),
                 getCommentsByHike(hikeIdNumber),
             ]);
-            if (hikeData) {
-                setHike(hikeData);
-            } else {
+            if (hikeData) setHike(hikeData);
+            else {
                 Alert.alert("Lỗi", "Không tìm thấy hike.", [{ text: "OK", onPress: () => router.back() }]);
             }
             setObservations(obsData);
@@ -63,9 +71,15 @@ export default function HikeDetailScreen() {
         }
     };
 
-    // ... (Giữ nguyên các hàm reload)
-    const reloadObservations = async () => { /* ... */ };
-    const reloadComments = async () => { /* ... */ };
+    const reloadObservations = async () => {
+        const obsData = await getObservationsByHike(hikeIdNumber);
+        setObservations(obsData);
+    };
+
+    const reloadComments = async () => {
+        const commData = await getCommentsByHike(hikeIdNumber);
+        setComments(commData);
+    };
 
     useFocusEffect(
         useCallback(() => {
@@ -78,17 +92,116 @@ export default function HikeDetailScreen() {
         }, [hikeIdNumber])
     );
 
-    // === CÁC HÀM XỬ LÝ (CRUD) ===
-    // ... (Giữ nguyên các hàm CRUD: handleDeleteHike, handleDeleteObservation, v...v...)
-    const handleDeleteHike = async () => { /* ... */ };
-    const handleDeleteObservation = (observationId: number) => { /* ... */ };
-    const handleSendComment = async () => { /* ... */ };
-    const handleDeleteComment = (commentId: number) => { /* ... */ };
-    const handleEditComment = (comment: any) => { /* ... */ };
-    const handleCancelEdit = () => { /* ... */ };
-    const handleUpdateComment = async () => { /* ... */ };
+    // === HIKE ===
+    const handleDeleteHike = async () => {
+        Alert.alert("Delete Hike", "Bạn có chắc chắn muốn xóa hike này không?", [
+            { text: "Cancel", style: "cancel" },
+            {
+                text: "Delete",
+                style: "destructive",
+                onPress: async () => {
+                    const success = await deleteHike(hikeIdNumber);
+                    if (success) router.back();
+                },
+            },
+        ]);
+    };
 
-    // --- LOADING VIEW ---
+    // === OBSERVATION ===
+    const handleDeleteObservation = (observationId: number) => {
+        Alert.alert("Delete Observation", "Bạn có chắc muốn xóa observation này?", [
+            { text: "Cancel", style: "cancel" },
+            {
+                text: "Delete",
+                style: "destructive",
+                onPress: async () => {
+                    const success = await deleteObservation(observationId);
+                    if (success) reloadObservations();
+                },
+            },
+        ]);
+    };
+
+    const handleEditObservation = (obs: any) => {
+        setEditingObservation(obs);
+        setNewObservation(obs.observation);
+    };
+
+    const handleCancelEditObservation = () => {
+        setEditingObservation(null);
+        setNewObservation("");
+    };
+
+    const handleUpdateObservation = async () => {
+        if (!editingObservation || newObservation.trim() === "") return;
+
+        const success = await updateObservation(
+            editingObservation.observation_id,
+            newObservation.trim(),
+            new Date().toISOString(),
+            editingObservation.comment || ""
+        );
+
+        if (success) {
+            handleCancelEditObservation();
+            reloadObservations();
+        }
+    };
+
+    // === COMMENT ===
+    const handleSendComment = async () => {
+        if (newComment.trim() === "") return;
+        if (!user?.user_id) {
+            Toast.show({ type: "error", text1: "Bạn cần đăng nhập để bình luận" });
+            return;
+        }
+        const success = await insertComment(hikeIdNumber, user.user_id, newComment.trim(), new Date().toISOString());
+        if (success) {
+            setNewComment("");
+            reloadComments();
+        }
+    };
+
+    const handleDeleteComment = (commentId: number) => {
+        Alert.alert("Delete Comment", "Bạn có chắc muốn xóa bình luận này?", [
+            { text: "Cancel", style: "cancel" },
+            {
+                text: "Delete",
+                style: "destructive",
+                onPress: async () => {
+                    const success = await deleteComment(commentId);
+                    if (success) reloadComments();
+                },
+            },
+        ]);
+    };
+
+    const handleEditComment = (comment: any) => {
+        setEditingComment(comment);
+        setNewComment(comment.content);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingComment(null);
+        setNewComment("");
+    };
+
+    const handleUpdateComment = async () => {
+        if (!editingComment || newComment.trim() === "") return;
+
+        const success = await updateComment(
+            editingComment.comment_id,
+            newComment.trim(),
+            new Date().toISOString()
+        );
+
+        if (success) {
+            handleCancelEdit();
+            reloadComments();
+        }
+    };
+
+    // === RENDER LOADING ===
     if (isLoading || !hike) {
         return (
             <View style={styles.loadingContainer}>
@@ -100,32 +213,23 @@ export default function HikeDetailScreen() {
 
     const isHikeOwner = user?.user_id === hike?.user_id;
 
-    // --- RENDER ---
     return (
-        // <--- SỬA LỖI KEYBOARD ---
         <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={styles.keyboardAvoidingContainer} // Sửa style
+            style={styles.keyboardAvoidingContainer}
             keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
         >
-            {/* 1. ScrollView chỉ chứa NỘI DUNG HIỂN THỊ */}
             <ScrollView
-                style={styles.scrollView} // Sửa style
-                contentContainerStyle={styles.scrollContentContainer} // Sửa style
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContentContainer}
                 showsVerticalScrollIndicator={false}
             >
                 <Image
-                    source={
-                        hike.photo_uri
-                            ? { uri: hike.photo_uri }
-                            : require("../../assets/hero1.jpg")
-                    }
+                    source={hike.photo_uri ? { uri: hike.photo_uri } : require("../../assets/hero1.jpg")}
                     style={styles.hikeImage}
                     resizeMode="cover"
                 />
 
-                {/* ... (Toàn bộ thông tin hike, obs, comments) ... */}
-                {/* ... (Thông tin Hike) ... */}
                 <Text style={styles.hikeName}>{hike.hike_name}</Text>
                 <Text style={styles.location}>{hike.location}</Text>
                 <Text style={styles.infoText}>
@@ -159,15 +263,10 @@ export default function HikeDetailScreen() {
                     </Text>
                 )}
 
-                {/* --- NÚT HIKE (CHỈ CHỦ HIKE MỚI THẤY) --- */}
                 {isHikeOwner && (
-                    // ... (Giữ nguyên code nút)
                     <View style={styles.buttonRow}>
                         <Link
-                            href={{
-                                pathname: "/hike-update/[id]",
-                                params: { id: hikeId },
-                            }}
+                            href={{ pathname: "/hike-update/[id]", params: { id: hikeId } }}
                             asChild
                             style={[styles.button, styles.updateButton]}
                         >
@@ -184,9 +283,8 @@ export default function HikeDetailScreen() {
                     </View>
                 )}
 
-                {/* --- OBSERVATIONS SECTION (CÓ NÚT XÓA) --- */}
+                {/* === OBSERVATIONS === */}
                 <Text style={styles.sectionTitle}>Observations</Text>
-                {/* ... (Giữ nguyên code Obs) ... */}
                 <View style={styles.boxContainer}>
                     {observations.length > 0 ? (
                         observations.map((obs) => (
@@ -203,12 +301,20 @@ export default function HikeDetailScreen() {
                                     )}
                                 </View>
                                 {isHikeOwner && (
-                                    <TouchableOpacity
-                                        style={styles.deleteCommentButton}
-                                        onPress={() => handleDeleteObservation(obs.observation_id)}
-                                    >
-                                        <Text style={styles.deleteCommentButtonText}>X</Text>
-                                    </TouchableOpacity>
+                                    <View style={styles.commentActions}>
+                                        <TouchableOpacity
+                                            style={styles.editButton}
+                                            onPress={() => handleEditObservation(obs)}
+                                        >
+                                            <Text style={styles.editButtonText}>Edit</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={styles.deleteCommentButton}
+                                            onPress={() => handleDeleteObservation(obs.observation_id)}
+                                        >
+                                            <Text style={styles.deleteCommentButtonText}>X</Text>
+                                        </TouchableOpacity>
+                                    </View>
                                 )}
                             </View>
                         ))
@@ -217,12 +323,10 @@ export default function HikeDetailScreen() {
                     )}
                 </View>
 
-                {/* --- DIVIDER --- */}
                 <View style={styles.divider} />
 
-                {/* --- COMMENTS SECTION (CÓ NÚT SỬA/XÓA) --- */}
+                {/* === COMMENTS === */}
                 <Text style={styles.sectionTitle}>Comments</Text>
-                {/* ... (Giữ nguyên code Comments) ... */}
                 <View style={styles.boxContainer}>
                     {comments.length > 0 ? (
                         comments.map((comm) => {
@@ -233,7 +337,7 @@ export default function HikeDetailScreen() {
                                         <Text style={styles.itemText}>{comm.content}</Text>
                                         <Text style={styles.itemSubText}>
                                             By {comm.username || "Unknown"} on{" "}
-                                            _ {new Date(comm.timestamp).toLocaleDateString()}
+                                            {new Date(comm.timestamp).toLocaleDateString()}
                                         </Text>
                                     </View>
                                     {isCommentOwner && (
@@ -261,12 +365,37 @@ export default function HikeDetailScreen() {
                 </View>
             </ScrollView>
 
-            {/* 2. View chứa Ô COMMENT INPUT (NẰM NGOÀI SCROLLVIEW) */}
+            {/* === OBSERVATION EDIT FORM === */}
+            {editingObservation && (
+                <View style={styles.commentInputContainer}>
+                    <Text style={styles.editingText}>Editing observation...</Text>
+                    <View style={styles.commentRow}>
+                        <TextInput
+                            style={styles.commentInput}
+                            placeholder="Update your observation..."
+                            value={newObservation}
+                            onChangeText={setNewObservation}
+                        />
+                        <TouchableOpacity
+                            style={styles.cancelButton}
+                            onPress={handleCancelEditObservation}
+                        >
+                            <Text style={styles.sendButtonText}>X</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.updateCommentButton}
+                            onPress={handleUpdateObservation}
+                        >
+                            <Text style={styles.sendButtonText}>Update</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )}
+
+            {/* === COMMENT FORM === */}
             <View style={styles.commentInputContainer}>
                 {editingComment && (
-                    <Text style={styles.editingText}>
-                        Editing comment...
-                    </Text>
+                    <Text style={styles.editingText}>Editing comment...</Text>
                 )}
                 <View style={styles.commentRow}>
                     <TextInput
@@ -281,7 +410,7 @@ export default function HikeDetailScreen() {
                             onPress={handleCancelEdit}
                         >
                             <Text style={styles.sendButtonText}>X</Text>
-                            E                       </TouchableOpacity>
+                        </TouchableOpacity>
                     )}
                     <TouchableOpacity
                         style={editingComment ? styles.updateCommentButton : styles.sendButton}
@@ -299,20 +428,14 @@ export default function HikeDetailScreen() {
     );
 }
 
-// 7. --- Thêm Styles mới ---
+// === STYLES ===
 const styles = StyleSheet.create({
-    // Sửa lại style container và thêm style mới
     keyboardAvoidingContainer: {
         flex: 1,
         backgroundColor: "#FAFAFA",
     },
-    scrollView: {
-        flex: 1,
-    },
-    scrollContentContainer: {
-        padding: 20,
-        paddingBottom: 0, // Xóa padding bottom để input nằm sát
-    },
+    scrollView: { flex: 1 },
+    scrollContentContainer: { padding: 20, paddingBottom: 0 },
     commentInputContainer: {
         padding: 20,
         paddingTop: 10,
@@ -320,8 +443,6 @@ const styles = StyleSheet.create({
         borderTopColor: "#E0E0E0",
         backgroundColor: "#FAFAFA",
     },
-
-    // ... (Giữ nguyên các style cũ của bạn từ 'hikeImage' đến 'loadingText')
     hikeImage: {
         width: "100%",
         height: 250,
@@ -344,12 +465,8 @@ const styles = StyleSheet.create({
         marginTop: 6,
         color: "#000",
     },
-    bold: {
-        fontWeight: "bold",
-    },
-    description: {
-        marginTop: 10,
-    },
+    bold: { fontWeight: "bold" },
+    description: { marginTop: 10 },
     buttonRow: {
         flexDirection: "row",
         justifyContent: "space-between",
@@ -362,16 +479,9 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginHorizontal: 6,
     },
-    updateButton: {
-        backgroundColor: "#1565C0",
-    },
-    deleteButton: {
-        backgroundColor: "#C62828",
-    },
-    buttonText: {
-        color: "#fff",
-        fontWeight: "bold",
-    },
+    updateButton: { backgroundColor: "#1565C0" },
+    deleteButton: { backgroundColor: "#C62828" },
+    buttonText: { color: "#fff", fontWeight: "bold" },
     sectionTitle: {
         fontSize: 18,
         fontWeight: "bold",
@@ -384,21 +494,9 @@ const styles = StyleSheet.create({
         padding: 10,
         borderRadius: 8,
     },
-    placeholder: {
-        color: "#777",
-        fontStyle: "italic",
-    },
-    divider: {
-        height: 1,
-        backgroundColor: "#CCC",
-        marginTop: 24,
-        marginBottom: 8,
-    },
-    commentRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginTop: 12,
-    },
+    placeholder: { color: "#777", fontStyle: "italic" },
+    divider: { height: 1, backgroundColor: "#CCC", marginTop: 24, marginBottom: 8 },
+    commentRow: { flexDirection: "row", alignItems: "center", marginTop: 12 },
     commentInput: {
         flex: 1,
         borderWidth: 1,
@@ -437,21 +535,14 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
     },
-    sendButtonText: {
-        color: "#fff",
-        fontWeight: "bold",
-        fontSize: 14,
-    },
+    sendButtonText: { color: "#fff", fontWeight: "bold", fontSize: 14 },
     loadingContainer: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
         backgroundColor: "#FAFAFA",
     },
-    loadingText: {
-        marginTop: 10,
-        color: "#1565C0",
-    },
+    loadingText: { marginTop: 10, color: "#1565C0" },
     itemContainer: {
         flexDirection: "row",
         justifyContent: "space-between",
@@ -461,18 +552,9 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         marginBottom: 8,
     },
-    itemContent: {
-        flex: 1,
-    },
-    itemText: {
-        fontSize: 15,
-        color: "#000",
-    },
-    itemSubText: {
-        fontSize: 12,
-        color: "#777",
-        marginTop: 4,
-    },
+    itemContent: { flex: 1 },
+    itemText: { fontSize: 15, color: "#000" },
+    itemSubText: { fontSize: 12, color: "#777", marginTop: 4 },
     commentActions: {
         flexDirection: "row",
         alignItems: "center",
@@ -485,22 +567,14 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         marginRight: 8,
     },
-    editButtonText: {
-        color: "#fff",
-        fontSize: 12,
-        fontWeight: "bold",
-    },
+    editButtonText: { color: "#fff", fontSize: 12, fontWeight: "bold" },
     deleteCommentButton: {
         backgroundColor: "#E53935",
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 4,
     },
-    deleteCommentButtonText: {
-        color: "#fff",
-        fontSize: 12,
-        fontWeight: "bold",
-    },
+    deleteCommentButtonText: { color: "#fff", fontSize: 12, fontWeight: "bold" },
     editingText: {
         fontSize: 14,
         fontStyle: "italic",
