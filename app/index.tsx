@@ -1,6 +1,7 @@
 import Card from "@/components/Card";
 import { Link } from "expo-router";
 import React, { useEffect, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   Dimensions,
   Image,
@@ -30,8 +31,9 @@ export default function Index() {
 
   const handleLogout = () => setUser(null);
 
-  // 🧭 Fetch dữ liệu từ DB
-  useEffect(() => {
+  
+  useFocusEffect(
+  React.useCallback(() => {
     const fetchData = async () => {
       try {
         if (user) {
@@ -49,8 +51,8 @@ export default function Index() {
     };
 
     fetchData();
-    console.log(user?.user_id)
-  }, [user]); // refetch khi user login/logout
+  }, [user])
+); 
 
   return (
     <ScrollView style={styles.container}>
@@ -104,7 +106,7 @@ export default function Index() {
       {/* --- YOUR HIKES --- */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Your Hike</Text>
-        <Link href="/all-hikes">
+        <Link href="/all-user-hikes">
           <Text style={styles.seeMore}>See More</Text>
         </Link>
       </View>

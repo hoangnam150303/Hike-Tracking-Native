@@ -295,6 +295,7 @@ export const getUserHikes = async (userId: number): Promise<any[]> => {
     return [];
   }
 };
+
 export const getHikeById = async (hikeId: number): Promise<any | null> => {
   try {
     const db = await openDB(); // Dùng getFirstAsync để lấy 1 hàng duy nhất
@@ -319,6 +320,7 @@ export const getHikeById = async (hikeId: number): Promise<any | null> => {
     return null;
   }
 };
+
 export const updateHike = async (
   id: number,
   name: string,
@@ -383,7 +385,22 @@ export const deleteHike = async (id: number): Promise<boolean> => {
     return false;
   }
 };
-
+export const deleteAllHikes = async (user_id: number): Promise<boolean> => {
+  try {
+    const db = await openDB();
+    await db.runAsync("DELETE FROM Hike where user_id = ?", [user_id]);
+    Toast.show({ type: "success", text1: "All Hike Deleted" });
+    return true;
+  } catch (error) {
+    console.error("Delete hike error:", error);
+    Toast.show({
+      type: "error",
+      text1: "Delete Failed",
+      text2: "Could not delete hike",
+    });
+    return false;
+  }
+};
 //
 // =============== COMMENT CRUD ===============
 //

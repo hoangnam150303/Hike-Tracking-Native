@@ -49,6 +49,7 @@ export default function RootLayout() {
             <Stack.Screen name="index" />
             <Stack.Screen name="login" />
             <Stack.Screen name="register" />
+            <Stack.Screen name="all-user-hikes" />
             <Stack.Screen name="create-page" />
             <Stack.Screen name="all-hikes" />
             <Stack.Screen name="hike-detail/[id]" />

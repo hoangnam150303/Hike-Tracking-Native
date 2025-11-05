@@ -2,6 +2,7 @@ import { Picker } from "@react-native-picker/picker";
 import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
+    Alert,
     FlatList,
     StyleSheet,
     Text,
@@ -10,59 +11,73 @@ import {
     View,
 } from "react-native";
 import Card from "../components/Card";
-import { getAllHikes } from "../utils/dbhelper"; // ✅ Import hàm lấy dữ liệu
+import { useUser } from "../context/UserContext";
+import { deleteAllHikes, getUserHikes } from "../utils/dbhelper"; // ✅ import
 
-export default function AllHikesScreen() {
+export default function AllUserHikesScreen() {
+    const { user } = useUser();
     const [search, setSearch] = useState("");
     const [difficulty, setDifficulty] = useState("");
-    const [allHikes, setAllHikes] = useState<any[]>([]);
-    const [filteredHikes, setFilteredHikes] = useState<any[]>([]);
+    const [userHikes, setUserHikes] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const images = [
-        require("../assets/hero1.jpg"),
-        require("../assets/hero2.jpg"),
-        require("../assets/hero3.jpg"),
-        require("../assets/hero4.jpg"),
-    ];
-
-    // 🔹 Load toàn bộ hikes khi mở trang
+    // 🔹 Fetch hikes khi user load
     useEffect(() => {
-        fetchAllHikes();
-    }, []);
+        if (!user) return;
+        fetchUserHikes();
+    }, [user]);
 
-    const fetchAllHikes = async () => {
+    const fetchUserHikes = async () => {
+        if (!user) return;
         try {
             setLoading(true);
-            const hikes = await getAllHikes(); // 🔥 Fetch từ SQLite
-            console.log("✅ Loaded all hikes:", hikes.length);
-            setAllHikes(hikes);
-            setFilteredHikes(hikes); // Gán ban đầu
+            const hikes = await getUserHikes(user.user_id);
+            setUserHikes(hikes);
         } catch (error) {
-            console.error("❌ Error loading hikes:", error);
+            console.error("❌ Error fetching user hikes:", error);
         } finally {
             setLoading(false);
         }
     };
 
-    // 🔍 Search
+    // 🔹 Delete All
+    const handleDeleteAll = async () => {
+        if (!user) return;
+        Alert.alert(
+            "Confirm Delete",
+            "Are you sure you want to delete all your hikes?",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete All",
+                    style: "destructive",
+                    onPress: async () => {
+                        const success = await deleteAllHikes(user.user_id);
+                        if (success) fetchUserHikes(); // reload list
+                    },
+                },
+            ]
+        );
+    };
+
+    // 🔹 Search
     const handleSearch = () => {
         const keyword = search.toLowerCase();
         if (keyword.trim() === "") {
-            setFilteredHikes(allHikes);
+            fetchUserHikes();
         } else {
-            const filtered = allHikes.filter(
+            const filtered = userHikes.filter(
                 (hike) =>
                     hike.hike_name.toLowerCase().includes(keyword) ||
                     hike.location.toLowerCase().includes(keyword)
             );
-            setFilteredHikes(filtered);
+            setUserHikes(filtered);
         }
     };
 
-    // ⚙️ Filter buttons
+    // 🔹 Filter
     const handleFilter = (type: string) => {
-        let sorted = [...filteredHikes];
+        let sorted = [...userHikes];
         if (type === "length") {
             sorted.sort((a, b) => a.length - b.length);
         } else if (type === "date") {
@@ -70,43 +85,29 @@ export default function AllHikesScreen() {
         } else if (type === "parking") {
             sorted = sorted.filter((hike) => hike.parking.toLowerCase() === "yes");
         }
-        setFilteredHikes(sorted);
+        setUserHikes(sorted);
     };
 
-    // 💪 Filter by Difficulty
-    const handleDifficulty = (value: string) => {
-        setDifficulty(value);
-        if (value === "") {
-            setFilteredHikes(allHikes);
-        } else {
-            const filtered = allHikes.filter(
-                (hike) =>
-                    hike.difficulty &&
-                    hike.difficulty.toLowerCase() === value.toLowerCase()
-            );
-            setFilteredHikes(filtered);
-        }
-    };
-
+    // 🔹 Loading
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#0D47A1" />
-                <Text>Loading hikes...</Text>
+                <Text>Loading your hikes...</Text>
             </View>
         );
     }
 
     return (
         <FlatList
-            data={filteredHikes}
+            data={userHikes}
             keyExtractor={(item) => item.hike_id.toString()}
             numColumns={2}
             showsVerticalScrollIndicator={false}
             columnWrapperStyle={styles.cardRow}
             ListHeaderComponent={
                 <>
-                    <Text style={styles.pageTitle}>All Hikes</Text>
+                    <Text style={styles.pageTitle}>My Hikes</Text>
 
                     {/* --- SEARCH BAR --- */}
                     <View style={styles.searchRow}>
@@ -148,7 +149,23 @@ export default function AllHikesScreen() {
                     {/* --- DIFFICULTY PICKER --- */}
                     <Text style={styles.label}>Filter by Difficulty</Text>
                     <View style={styles.pickerContainer}>
-                        <Picker selectedValue={difficulty} onValueChange={handleDifficulty}>
+                        <Picker
+                            selectedValue={difficulty}
+                            onValueChange={(value) => {
+                                setDifficulty(value);
+                                if (value === "") {
+                                    fetchUserHikes();
+                                } else {
+                                    setUserHikes(
+                                        userHikes.filter(
+                                            (hike) =>
+                                                hike.difficulty &&
+                                                hike.difficulty.toLowerCase() === value.toLowerCase()
+                                        )
+                                    );
+                                }
+                            }}
+                        >
                             <Picker.Item label="Select difficulty" value="" />
                             <Picker.Item label="Easy" value="Easy" />
                             <Picker.Item label="Moderate" value="Moderate" />
@@ -162,9 +179,24 @@ export default function AllHikesScreen() {
                     id={item.hike_id.toString()}
                     title={item.hike_name}
                     length={`${item.length} km`}
-                    image={images[index % images.length]}
+                    image={require("../assets/hero1.jpg")}
                 />
             )}
+
+            // 🟥 Nút Delete All nằm dưới danh sách
+            ListFooterComponent={
+                userHikes.length > 0 ? (
+                    <TouchableOpacity
+                        style={styles.deleteAllButton}
+                        onPress={handleDeleteAll}
+                    >
+                        <Text style={styles.deleteAllText}>🗑 Delete All My Hikes</Text>
+                    </TouchableOpacity>
+                ) : (
+                    <Text style={styles.noHikesText}>No hikes found.</Text>
+                )
+            }
+
             contentContainerStyle={styles.container}
         />
     );
@@ -174,7 +206,7 @@ const styles = StyleSheet.create({
     container: {
         backgroundColor: "#FAF9FF",
         padding: 16,
-        paddingBottom: 40,
+        paddingBottom: 60, // khoảng cách cho nút ở cuối
     },
     pageTitle: {
         fontSize: 24,
@@ -236,12 +268,31 @@ const styles = StyleSheet.create({
         backgroundColor: "#fff",
         marginBottom: 16,
     },
+    deleteAllButton: {
+        backgroundColor: "red",
+        borderRadius: 8,
+        paddingVertical: 14,
+        alignItems: "center",
+        justifyContent: "center",
+        marginTop: 20,
+    },
+    deleteAllText: {
+        color: "#fff",
+        fontWeight: "bold",
+        fontSize: 16,
+    },
+    noHikesText: {
+        textAlign: "center",
+        color: "#888",
+        marginTop: 24,
+        fontSize: 16,
+    },
     cardRow: {
         justifyContent: "space-between",
     },
     loadingContainer: {
         flex: 1,
-        justifyContent: "center",
         alignItems: "center",
+        justifyContent: "center",
     },
 });
