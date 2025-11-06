@@ -15,7 +15,18 @@ import {
 } from "react-native";
 import Toast from "react-native-toast-message";
 import { useUser } from "../context/UserContext";
-import { insertHike } from "../utils/dbhelper"; // 🔗 import từ file bạn có sẵn
+import { insertHike } from "../utils/dbhelper";
+
+// --- Import ảnh tĩnh có sẵn trong assets ---
+const localImages = [
+    require("../assets/image_hikes/lake.jpg"),
+    require("../assets/image_hikes/view1.jpg"),
+    require("../assets/image_hikes/view2.jpg"),
+    require("../assets/image_hikes/view3.jpg"),
+    require("../assets/image_hikes/view4.jpg"),
+    require("../assets/image_hikes/view5.webp"),
+];
+
 export default function CreateHikeScreen() {
     const router = useRouter();
 
@@ -30,15 +41,18 @@ export default function CreateHikeScreen() {
     const [weather, setWeather] = useState("");
     const [companions, setCompanions] = useState("");
     const [photo, setPhoto] = useState<string | null>(null);
-    const { user, setUser } = useUser();
+    const [selectedImage, setSelectedImage] = useState<number | null>(null); // Ảnh chọn từ assets
+
+    const { user } = useUser();
     const user_id = user?.user_id;
+
     // 🗓 Pick Date
     const handlePickDate = (event: any, selectedDate?: Date) => {
         setShowDatePicker(false);
         if (selectedDate) setDate(selectedDate);
     };
 
-    // 🖼 Pick Photo
+    // 🖼 Pick Photo từ thư viện
     const handlePickPhoto = async () => {
         const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -46,12 +60,14 @@ export default function CreateHikeScreen() {
             aspect: [4, 3],
             quality: 1,
         });
-        if (!result.canceled) setPhoto(result.assets[0].uri);
+        if (!result.canceled) {
+            setPhoto(result.assets[0].uri);
+            setSelectedImage(null); // reset nếu đã chọn ảnh assets
+        }
     };
 
-    // submit
+    // ✅ Submit
     const handleSubmit = async () => {
-        // 1. Kiểm tra các field bắt buộc
         if (!hikeName || !location || !date || !parking || !length || !difficulty) {
             Toast.show({
                 type: "error",
@@ -61,7 +77,7 @@ export default function CreateHikeScreen() {
             return;
         }
 
-        // --- 2. Thêm bước kiểm tra "Length" là số hợp lệ ---
+        // Validate numeric
         const numericLength = parseFloat(length);
         if (isNaN(numericLength)) {
             Toast.show({
@@ -69,30 +85,42 @@ export default function CreateHikeScreen() {
                 text1: "Invalid Input",
                 text2: "Length of Hike must be a valid number (e.g. 5.2).",
             });
-            return; // Dừng lại nếu length không phải là số
+            return;
         }
-        // ----------------------------------------------------
 
-        // 3. Lấy user_id (Cách của bạn đã đúng)
-        // Nếu user không đăng nhập (user_id là undefined), nó sẽ dùng 0.
+        // user_id
         const currentUserId = user_id || 0;
-        if (!user_id) {
-            console.warn("User not logged in. Saving hike with user_id 0.");
+
+        // 🔗 Xử lý ảnh được chọn
+        let finalPhoto = "";
+        if (photo) {
+            finalPhoto = photo; // ảnh từ thư viện
+        } else if (selectedImage !== null) {
+            // Đường dẫn logic để lưu vào DB
+            const paths = [
+                "../assets/image_hikes/lake.jpg",
+                "../assets/image_hikes/view1.jpg",
+                "../assets/image_hikes/view2.jpg",
+                "../assets/image_hikes/view3.jpg",
+                "../assets/image_hikes/view4.jpg",
+                "../assets/image_hikes/view5.webp",
+            ];
+            finalPhoto = paths[selectedImage];
         }
 
-        // 4. Gọi insertHike với dữ liệu sạch
+        // Lưu vào SQLite
         const success = await insertHike(
             hikeName.trim(),
             location.trim(),
             date.toISOString(),
             parking,
-            numericLength, // <-- Dùng biến đã được validate
+            numericLength,
             difficulty,
             description?.trim() || "",
             weather || "",
             companions || "",
-            photo || "",
-            currentUserId // <-- Dùng biến đã được gán
+            finalPhoto,
+            currentUserId
         );
 
         if (success) {
@@ -108,8 +136,8 @@ export default function CreateHikeScreen() {
             setWeather("");
             setCompanions("");
             setPhoto(null);
-
-            router.push("/"); // quay lại home
+            setSelectedImage(null);
+            router.push("/");
         }
     };
 
@@ -239,11 +267,37 @@ export default function CreateHikeScreen() {
             <Text style={styles.label}>Check-in Photo</Text>
             {photo ? (
                 <Image source={{ uri: photo }} style={styles.photo} />
+            ) : selectedImage !== null ? (
+                <Image source={localImages[selectedImage]} style={styles.photo} />
             ) : (
                 <View style={[styles.photo, { backgroundColor: "#ccc" }]} />
             )}
+
+            {/* Danh sách ảnh có sẵn */}
+            <Text style={{ fontWeight: "bold", marginTop: 10 }}>
+                Or choose from sample images:
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 10 }}>
+                {localImages.map((imgSrc, index) => (
+                    <TouchableOpacity
+                        key={index}
+                        style={[
+                            styles.imageOption,
+                            selectedImage === index && styles.imageSelected,
+                        ]}
+                        onPress={() => {
+                            setSelectedImage(index);
+                            setPhoto(null);
+                        }}
+                    >
+                        <Image source={imgSrc} style={styles.imageThumbnail} />
+                    </TouchableOpacity>
+                ))}
+            </ScrollView>
+
+            {/* Nút chọn từ thư viện */}
             <TouchableOpacity style={styles.smallButton} onPress={handlePickPhoto}>
-                <Text style={styles.smallButtonText}>Choose Photo</Text>
+                <Text style={styles.smallButtonText}>Choose From Gallery</Text>
             </TouchableOpacity>
 
             {/* Submit */}
@@ -321,6 +375,20 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         marginTop: 8,
         marginBottom: 10,
+    },
+    imageOption: {
+        marginRight: 10,
+        borderWidth: 2,
+        borderColor: "transparent",
+        borderRadius: 8,
+    },
+    imageSelected: {
+        borderColor: "#000",
+    },
+    imageThumbnail: {
+        width: 100,
+        height: 70,
+        borderRadius: 8,
     },
     submitButton: {
         backgroundColor: "#000",
