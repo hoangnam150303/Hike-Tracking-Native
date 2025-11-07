@@ -91,7 +91,7 @@ export default function HikeDetailScreen() {
 
     // === DELETE HIKE ===
     const handleDeleteHike = async () => {
-        Alert.alert("Delete Hike", "Bạn có chắc chắn muốn xóa hike này không?", [
+        Alert.alert("Delete Hike", "Do you want to delete this hike?", [
             { text: "Cancel", style: "cancel" },
             {
                 text: "Delete",
@@ -106,7 +106,7 @@ export default function HikeDetailScreen() {
 
     // === OBSERVATIONS ===
     const handleDeleteObservation = (observationId: number) => {
-        Alert.alert("Delete Observation", "Bạn có chắc muốn xóa observation này?", [
+        Alert.alert("Delete Observation", "Do you want to delete this observation?", [
             { text: "Cancel", style: "cancel" },
             {
                 text: "Delete",
@@ -149,7 +149,7 @@ export default function HikeDetailScreen() {
     const handleSendComment = async () => {
         if (newComment.trim() === "") return;
         if (!user?.user_id) {
-            Toast.show({ type: "error", text1: "Bạn cần đăng nhập để bình luận" });
+            Toast.show({ type: "error", text1: "You must be logged in to comment" });
             return;
         }
         const success = await insertComment(hikeIdNumber, user.user_id, newComment.trim(), new Date().toISOString());
@@ -160,7 +160,7 @@ export default function HikeDetailScreen() {
     };
 
     const handleDeleteComment = (commentId: number) => {
-        Alert.alert("Delete Comment", "Bạn có chắc muốn xóa bình luận này?", [
+        Alert.alert("Delete Comment", "Do you want to delete this comment?", [
             { text: "Cancel", style: "cancel" },
             {
                 text: "Delete",

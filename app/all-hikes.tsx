@@ -10,7 +10,7 @@ import {
     View,
 } from "react-native";
 import Card from "../components/Card";
-import { getAllHikes } from "../utils/dbhelper"; // ✅ Import hàm lấy dữ liệu
+import { getAllHikes } from "../utils/dbhelper";
 
 export default function AllHikesScreen() {
     const [search, setSearch] = useState("");
@@ -19,14 +19,14 @@ export default function AllHikesScreen() {
     const [filteredHikes, setFilteredHikes] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const images = [
+    const defaultImage = require("../assets/image_hikes/no_image.jpg");
+    const fallbackImages = [
         require("../assets/hero1.jpg"),
         require("../assets/hero2.jpg"),
         require("../assets/hero3.jpg"),
         require("../assets/hero4.jpg"),
     ];
 
-    // 🔹 Load toàn bộ hikes khi mở trang
     useEffect(() => {
         fetchAllHikes();
     }, []);
@@ -34,10 +34,10 @@ export default function AllHikesScreen() {
     const fetchAllHikes = async () => {
         try {
             setLoading(true);
-            const hikes = await getAllHikes(); // 🔥 Fetch từ SQLite
+            const hikes = await getAllHikes();
             console.log("✅ Loaded all hikes:", hikes.length);
             setAllHikes(hikes);
-            setFilteredHikes(hikes); // Gán ban đầu
+            setFilteredHikes(hikes);
         } catch (error) {
             console.error("❌ Error loading hikes:", error);
         } finally {
@@ -45,7 +45,6 @@ export default function AllHikesScreen() {
         }
     };
 
-    // 🔍 Search
     const handleSearch = () => {
         const keyword = search.toLowerCase();
         if (keyword.trim() === "") {
@@ -60,7 +59,6 @@ export default function AllHikesScreen() {
         }
     };
 
-    // ⚙️ Filter buttons
     const handleFilter = (type: string) => {
         let sorted = [...filteredHikes];
         if (type === "length") {
@@ -73,7 +71,6 @@ export default function AllHikesScreen() {
         setFilteredHikes(sorted);
     };
 
-    // 💪 Filter by Difficulty
     const handleDifficulty = (value: string) => {
         setDifficulty(value);
         if (value === "") {
@@ -153,18 +150,27 @@ export default function AllHikesScreen() {
                             <Picker.Item label="Easy" value="Easy" />
                             <Picker.Item label="Moderate" value="Moderate" />
                             <Picker.Item label="Hard" value="Hard" />
+                            <Picker.Item label="Extreme" value="Extreme" />
                         </Picker>
                     </View>
                 </>
             }
-            renderItem={({ item, index }) => (
-                <Card
-                    id={item.hike_id.toString()}
-                    title={item.hike_name}
-                    length={`${item.length} km`}
-                    image={images[index % images.length]}
-                />
-            )}
+            renderItem={({ item, index }) => {
+                // ✅ Ưu tiên ảnh trong DB, nếu rỗng thì fallback
+                const imageSource =
+                    typeof item.photo_uri === "string" && item.photo_uri.trim() !== ""
+                        ? { uri: item.photo_uri }
+                        : fallbackImages[index % fallbackImages.length] || defaultImage;
+
+                return (
+                    <Card
+                        id={item.hike_id.toString()}
+                        title={item.hike_name}
+                        length={`${item.length} km`}
+                        image={imageSource}
+                    />
+                );
+            }}
             contentContainerStyle={styles.container}
         />
     );
@@ -191,13 +197,13 @@ const styles = StyleSheet.create({
         flex: 1,
         borderWidth: 1,
         borderColor: "#ccc",
-        borderRadius: 6,
+        borderRadius: 10,
         padding: 10,
         backgroundColor: "#fff",
     },
     searchButton: {
         backgroundColor: "#0D47A1",
-        borderRadius: 6,
+        borderRadius: 10,
         paddingVertical: 10,
         paddingHorizontal: 14,
         marginLeft: 8,
@@ -213,7 +219,7 @@ const styles = StyleSheet.create({
     },
     filterButton: {
         flex: 1,
-        borderRadius: 6,
+        borderRadius: 12,
         paddingVertical: 10,
         marginHorizontal: 4,
         alignItems: "center",
@@ -232,9 +238,15 @@ const styles = StyleSheet.create({
     pickerContainer: {
         borderWidth: 1,
         borderColor: "#ddd",
-        borderRadius: 6,
+        borderRadius: 16, // 🌿 bo tròn hơn
         backgroundColor: "#fff",
         marginBottom: 16,
+        overflow: "hidden",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
     },
     cardRow: {
         justifyContent: "space-between",

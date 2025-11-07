@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import Card from "../components/Card";
 import { useUser } from "../context/UserContext";
-import { deleteAllHikes, getUserHikes } from "../utils/dbhelper"; // ✅ import
+import { deleteAllHikes, getUserHikes } from "../utils/dbhelper";
 
 export default function AllUserHikesScreen() {
     const { user } = useUser();
@@ -53,7 +53,7 @@ export default function AllUserHikesScreen() {
                     style: "destructive",
                     onPress: async () => {
                         const success = await deleteAllHikes(user.user_id);
-                        if (success) fetchUserHikes(); // reload list
+                        if (success) fetchUserHikes();
                     },
                 },
             ]
@@ -97,6 +97,8 @@ export default function AllUserHikesScreen() {
             </View>
         );
     }
+
+    const defaultImage = require("../assets/image_hikes/no_image.jpg");
 
     return (
         <FlatList
@@ -170,20 +172,27 @@ export default function AllUserHikesScreen() {
                             <Picker.Item label="Easy" value="Easy" />
                             <Picker.Item label="Moderate" value="Moderate" />
                             <Picker.Item label="Hard" value="Hard" />
+                            <Picker.Item label="Extreme" value="Extreme" />
                         </Picker>
                     </View>
                 </>
             }
-            renderItem={({ item, index }) => (
-                <Card
-                    id={item.hike_id.toString()}
-                    title={item.hike_name}
-                    length={`${item.length} km`}
-                    image={require("../assets/hero1.jpg")}
-                />
-            )}
+            renderItem={({ item }) => {
 
-            // 🟥 Nút Delete All nằm dưới danh sách
+                const imageSource =
+                    typeof item.photo_uri === "string" && item.photo_uri.trim() !== ""
+                        ? { uri: item.photo_uri }
+                        : defaultImage;
+
+                return (
+                    <Card
+                        id={item.hike_id.toString()}
+                        title={item.hike_name}
+                        length={`${item.length} km`}
+                        image={imageSource}
+                    />
+                );
+            }}
             ListFooterComponent={
                 userHikes.length > 0 ? (
                     <TouchableOpacity
@@ -196,7 +205,6 @@ export default function AllUserHikesScreen() {
                     <Text style={styles.noHikesText}>No hikes found.</Text>
                 )
             }
-
             contentContainerStyle={styles.container}
         />
     );
@@ -206,7 +214,7 @@ const styles = StyleSheet.create({
     container: {
         backgroundColor: "#FAF9FF",
         padding: 16,
-        paddingBottom: 60, // khoảng cách cho nút ở cuối
+        paddingBottom: 60,
     },
     pageTitle: {
         fontSize: 24,
@@ -269,8 +277,8 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     deleteAllButton: {
-        backgroundColor: "red",
-        borderRadius: 8,
+        backgroundColor: "#B93338",
+        borderRadius: 20,
         paddingVertical: 14,
         alignItems: "center",
         justifyContent: "center",

@@ -227,6 +227,7 @@ export default function CreateHikeScreen() {
                     <Picker.Item label="Easy" value="Easy" />
                     <Picker.Item label="Moderate" value="Moderate" />
                     <Picker.Item label="Hard" value="Hard" />
+                    <Picker.Item label="Extreme" value="Extreme" />
                 </Picker>
             </View>
 
@@ -251,6 +252,7 @@ export default function CreateHikeScreen() {
                     <Picker.Item label="Sunny" value="Sunny" />
                     <Picker.Item label="Cloudy" value="Cloudy" />
                     <Picker.Item label="Rainy" value="Rainy" />
+                    <Picker.Item label="Foggy" value="Foggy" />
                 </Picker>
             </View>
 
