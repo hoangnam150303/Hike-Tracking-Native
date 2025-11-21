@@ -10,20 +10,20 @@ type CardProps = {
 };
 
 export default function Card({ id, title, length, image }: CardProps) {
-  console.log("🖼 Image from DB:", image);
+
 
   const defaultImage = require("../assets/image_hikes/no_image.jpg");
 
   let source: any = defaultImage;
 
   if (typeof image === "number") {
-    // asset nội bộ (require trả về số)
+    
     source = image;
   } else if (typeof image === "string" && image.trim() !== "") {
-    // ảnh từ thư viện hoặc URL
+
     source = { uri: image };
   } else if (typeof image === "object" && image.uri) {
-    // ảnh nội bộ lưu dưới dạng { uri: "../assets/image_hikes/xxx" }
+
     const map: Record<string, any> = {
       "../assets/image_hikes/lake.jpg": require("../assets/image_hikes/lake.jpg"),
       "../assets/image_hikes/view1.jpg": require("../assets/image_hikes/view1.jpg"),

@@ -1,29 +1,28 @@
 import * as SQLite from "expo-sqlite";
 import Toast from "react-native-toast-message";
 
-// `expo-sqlite` không cần 'enablePromise'. API async đã có sẵn.
+
 
 const DATABASE_NAME = "Hiking.db";
 let db: SQLite.SQLiteDatabase | null = null;
 
 // --- OPEN DATABASE ---
 export const openDB = async (): Promise<SQLite.SQLiteDatabase> => {
-  // Singleton pattern: Nếu db đã mở, trả về nó
   if (db) return db;
 
   try {
-    // Sử dụng openDatabaseAsync cho API mới
+
     db = await SQLite.openDatabaseAsync(DATABASE_NAME);
-    console.log("✅ Database opened:", DATABASE_NAME);
+    console.log("Database opened:", DATABASE_NAME);
     return db;
   } catch (error) {
-    console.error("❌ Failed to open database:", error);
+    console.error("Failed to open database:", error);
     Toast.show({
       type: "error",
       text1: "Database Error",
       text2: "Cannot open database",
     });
-    throw error; // Ném lỗi để hàm gọi nó có thể bắt
+    throw error; 
   }
 };
 
@@ -32,10 +31,9 @@ export const initDB = async () => {
   try {
     const db = await openDB();
 
-    // Sử dụng withTransactionAsync cho transaction
+  
     await db.withTransactionAsync(async () => {
-      // Bên trong withTransactionAsync, bạn chỉ cần await các câu lệnh
-      // Không cần đối tượng 'tx'
+
       await db.runAsync(`
         CREATE TABLE IF NOT EXISTS User (
           user_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -103,12 +101,12 @@ export const initDB = async () => {
 export const checkEmail = async (email: string): Promise<boolean> => {
   try {
     const db = await openDB();
-    // getFirstAsync trả về object hoặc null, hoàn hảo để kiểm tra tồn tại
+
     const result = await db.getFirstAsync(
       "SELECT * FROM User WHERE email = ?",
       [email]
     );
-    return !!result; // !!result sẽ là true nếu object tồn tại, false nếu null
+    return !!result; 
   } catch (error) {
     console.error("Check email error:", error);
     Toast.show({
@@ -128,16 +126,15 @@ export const insertUser = async (
   try {
     const db = await openDB();
 
-    // Bỏ check if (!db) vì openDB() sẽ throw error nếu thất bại
-    // nên code sẽ không chạy tới đây nếu db là null.
+
 
     console.log(password, email, username);
-    // Dùng runAsync cho INSERT, UPDATE, DELETE
+
     const result = await db.runAsync(
       "INSERT INTO User (email, password, username) VALUES (?, ?, ?)",
       [email, password, username]
     );
-    console.log("Insert result:", result); // result sẽ là { changes: 1, lastInsertRowId: ... }
+    console.log("Insert result:", result); 
     Toast.show({ type: "success", text1: "Registration Successful 🎉" });
     return true;
   } catch (error: any) {
@@ -158,34 +155,32 @@ export const login = async (
   email: string,
   password: string
 ): Promise<User | null> => {
-  // <-- 1. ĐỔI KIỂU TRẢ VỀ
+
   try {
     const db = await openDB();
     console.log(email, password);
 
-    // 2. Chỉ SELECT 2 trường bạn cần
-    // Thêm <User> để TypeScript biết kiểu trả về
     const result = await db.getFirstAsync<User>(
       "SELECT user_id, username FROM User WHERE email=? AND password=?",
       [email, password]
     );
 
-    // 3. KIỂM TRA KẾT QUẢ
+
     if (result) {
       // Tìm thấy user, hiển thị Toast thành công
       Toast.show({ type: "success", text1: "Login Successful ✅" });
 
-      // 4. TRẢ VỀ DATA CỦA USER
+
       return result;
     } else {
-      // Không tìm thấy (sai info), hiển thị Toast lỗi
+
       Toast.show({
         type: "error",
         text1: "Invalid Credentials",
         text2: "Please try again",
       });
 
-      // 5. TRẢ VỀ NULL
+
       return null;
     }
   } catch (error) {
@@ -195,7 +190,7 @@ export const login = async (
       text1: "Login Failed",
       text2: "Database error",
     });
-    // 6. TRẢ VỀ NULL KHI LỖI
+
     return null;
   }
 };
@@ -283,10 +278,10 @@ export const getUserHikes = async (userId: number): Promise<any[]> => {
       [userId]
     );
 
-    console.log(`✅ Loaded ${results.length} hikes for user ${userId}`);
+    console.log(` Loaded ${results.length} hikes for user ${userId}`);
     return results;
   } catch (error) {
-    console.error("❌ getUserHikes error:", error);
+    console.error("getUserHikes error:", error);
     Toast.show({
       type: "error",
       text1: "Load Failed",
@@ -298,14 +293,14 @@ export const getUserHikes = async (userId: number): Promise<any[]> => {
 
 export const getHikeById = async (hikeId: number): Promise<any | null> => {
   try {
-    const db = await openDB(); // Dùng getFirstAsync để lấy 1 hàng duy nhất
+    const db = await openDB(); 
     const hike = await db.getFirstAsync(
       "SELECT * FROM Hike WHERE hike_id = ?",
       [hikeId]
     );
 
     if (hike) {
-      return hike; // Trả về object hike nếu tìm thấy
+      return hike; 
     } else {
       console.warn(`Warn: Không tìm thấy hike với id ${hikeId}`);
       return null;
@@ -441,7 +436,7 @@ export const getCommentsByHike = async (hikeId: number): Promise<any[]> => {
        ORDER BY c.comment_id DESC`,
       [hikeId]
     );
-    return results; // Trả về mảng
+    return results; 
   } catch (error) {
     console.error("Get comments error:", error);
     Toast.show({
@@ -530,7 +525,7 @@ export const getObservationsByHike = async (hikeId: number): Promise<any[]> => {
       "SELECT * FROM Observation WHERE hike_id=? ORDER BY observation_id DESC",
       [hikeId]
     );
-    return results; // Trả về mảng
+    return results; 
   } catch (error) {
     console.error("Get Observations error:", error);
     Toast.show({

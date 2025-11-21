@@ -16,6 +16,7 @@ export default function RegisterScreen() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
+    // check all fields are not empty
   const handleRegister = async () => {
     if (!username || !email || !password) {
       Toast.show({
@@ -27,6 +28,7 @@ export default function RegisterScreen() {
     }
 
     try {
+      // check if email already exists
       const exists = await checkEmail(email);
       if (exists) {
         Toast.show({
@@ -46,7 +48,7 @@ export default function RegisterScreen() {
         });
 
         setTimeout(() => {
-          router.push("/login");
+          router.push("/login"); // redirect to login
         }, 1500);
       } else {
         Toast.show({

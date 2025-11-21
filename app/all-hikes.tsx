@@ -35,11 +35,11 @@ export default function AllHikesScreen() {
         try {
             setLoading(true);
             const hikes = await getAllHikes();
-            console.log("✅ Loaded all hikes:", hikes.length);
+            console.log("Loaded all hikes:", hikes.length);
             setAllHikes(hikes);
             setFilteredHikes(hikes);
         } catch (error) {
-            console.error("❌ Error loading hikes:", error);
+            console.error("Error loading hikes:", error);
         } finally {
             setLoading(false);
         }
@@ -156,7 +156,7 @@ export default function AllHikesScreen() {
                 </>
             }
             renderItem={({ item, index }) => {
-                // ✅ Ưu tiên ảnh trong DB, nếu rỗng thì fallback
+
                 const imageSource =
                     typeof item.photo_uri === "string" && item.photo_uri.trim() !== ""
                         ? { uri: item.photo_uri }
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     pickerContainer: {
         borderWidth: 1,
         borderColor: "#ddd",
-        borderRadius: 16, // 🌿 bo tròn hơn
+        borderRadius: 16,
         backgroundColor: "#fff",
         marginBottom: 16,
         overflow: "hidden",

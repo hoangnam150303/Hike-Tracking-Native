@@ -17,7 +17,7 @@ import Toast from "react-native-toast-message";
 import { useUser } from "../context/UserContext";
 import { insertHike } from "../utils/dbhelper";
 
-// --- Import ảnh tĩnh có sẵn trong assets ---
+// --- Import local images ---
 const localImages = [
     require("../assets/image_hikes/lake.jpg"),
     require("../assets/image_hikes/view1.jpg"),
@@ -41,18 +41,18 @@ export default function CreateHikeScreen() {
     const [weather, setWeather] = useState("");
     const [companions, setCompanions] = useState("");
     const [photo, setPhoto] = useState<string | null>(null);
-    const [selectedImage, setSelectedImage] = useState<number | null>(null); // Ảnh chọn từ assets
+    const [selectedImage, setSelectedImage] = useState<number | null>(null);
 
     const { user } = useUser();
     const user_id = user?.user_id;
 
-    // 🗓 Pick Date
+    // choose date
     const handlePickDate = (event: any, selectedDate?: Date) => {
         setShowDatePicker(false);
         if (selectedDate) setDate(selectedDate);
     };
 
-    // 🖼 Pick Photo từ thư viện
+    // choose photo from gallery in device
     const handlePickPhoto = async () => {
         const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -62,11 +62,11 @@ export default function CreateHikeScreen() {
         });
         if (!result.canceled) {
             setPhoto(result.assets[0].uri);
-            setSelectedImage(null); // reset nếu đã chọn ảnh assets
+            setSelectedImage(null);
         }
     };
 
-    // ✅ Submit
+    // submit
     const handleSubmit = async () => {
         if (!hikeName || !location || !date || !parking || !length || !difficulty) {
             Toast.show({
@@ -91,12 +91,11 @@ export default function CreateHikeScreen() {
         // user_id
         const currentUserId = user_id || 0;
 
-        // 🔗 Xử lý ảnh được chọn
+        // get final photo
         let finalPhoto = "";
         if (photo) {
-            finalPhoto = photo; // ảnh từ thư viện
+            finalPhoto = photo;
         } else if (selectedImage !== null) {
-            // Đường dẫn logic để lưu vào DB
             const paths = [
                 "../assets/image_hikes/lake.jpg",
                 "../assets/image_hikes/view1.jpg",
@@ -108,7 +107,7 @@ export default function CreateHikeScreen() {
             finalPhoto = paths[selectedImage];
         }
 
-        // Lưu vào SQLite
+        // call insertHike in dbhelper and save data
         const success = await insertHike(
             hikeName.trim(),
             location.trim(),
@@ -124,7 +123,7 @@ export default function CreateHikeScreen() {
         );
 
         if (success) {
-            Alert.alert("✅ Success", "Your hike record has been saved!");
+            Alert.alert("Success", "Your hike record has been saved!");
             // Reset form
             setHikeName("");
             setLocation("");
@@ -275,7 +274,6 @@ export default function CreateHikeScreen() {
                 <View style={[styles.photo, { backgroundColor: "#ccc" }]} />
             )}
 
-            {/* Danh sách ảnh có sẵn */}
             <Text style={{ fontWeight: "bold", marginTop: 10 }}>
                 Or choose from sample images:
             </Text>
@@ -297,17 +295,17 @@ export default function CreateHikeScreen() {
                 ))}
             </ScrollView>
 
-            {/* Nút chọn từ thư viện */}
+
             <TouchableOpacity style={styles.smallButton} onPress={handlePickPhoto}>
                 <Text style={styles.smallButtonText}>Choose From Gallery</Text>
             </TouchableOpacity>
 
-            {/* Submit */}
+
             <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
                 <Text style={styles.submitText}>Submit Hike Record</Text>
             </TouchableOpacity>
 
-            {/* Back */}
+
             <Link href="/" style={styles.backText}>
                 Back To Home Page
             </Link>

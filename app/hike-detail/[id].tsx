@@ -56,13 +56,13 @@ export default function HikeDetailScreen() {
             ]);
             if (hikeData) setHike(hikeData);
             else {
-                Alert.alert("Lỗi", "Không tìm thấy hike.", [{ text: "OK", onPress: () => router.back() }]);
+                Alert.alert("Error", "Not found.", [{ text: "OK", onPress: () => router.back() }]);
             }
             setObservations(obsData);
             setComments(commData);
         } catch (error) {
             console.error("Failed to load data:", error);
-            Toast.show({ type: "error", text1: "Lỗi tải dữ liệu" });
+            Toast.show({ type: "error", text1: "Failed to load data" });
         } finally {
             setIsLoading(false);
         }
@@ -81,7 +81,7 @@ export default function HikeDetailScreen() {
     useFocusEffect(
         useCallback(() => {
             if (!hikeIdNumber) {
-                Alert.alert("Lỗi", "Không tìm thấy ID của hike.");
+                Alert.alert("Error", "Id not found.");
                 router.back();
                 return;
             }
@@ -206,7 +206,7 @@ export default function HikeDetailScreen() {
 
     const isHikeOwner = user?.user_id === hike?.user_id;
 
-    // ✅ chọn ảnh phù hợp
+    
     const getImageSource = (photo: any) => {
         const defaultImg = require("../../assets/image_hikes/no_image.jpg");
         const map: Record<string, any> = {

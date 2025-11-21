@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import Carousel from "react-native-reanimated-carousel";
 import { useUser } from "../context/UserContext";
-import { getAllHikes, getUserHikes } from "../utils/dbhelper"; // 🔗 lấy từ db
+import { getAllHikes, getUserHikes } from "../utils/dbhelper"; 
 
 const { width } = Dimensions.get("window");
 

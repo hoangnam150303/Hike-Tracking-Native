@@ -1,28 +1,26 @@
 import React, { createContext, useContext, useState } from "react";
 
-// 1. Định nghĩa kiểu dữ liệu User (chỉ 2 trường bạn cần)
+// define types
 interface User {
   user_id: number;
   username: string;
 }
 
-// 2. Định nghĩa kiểu của Context
+//define types for context
 interface UserContextType {
-  user: User | null; // "GET": Dùng 'user' để lấy data
-  setUser: (user: User | null) => void; // "SET": Dùng 'setUser' để set data
+  user: User | null;
+  setUser: (user: User | null) => void;
 }
 
-// 3. Tạo Context
-// Giá trị mặc định là 'undefined' để phát hiện lỗi nếu quên bọc Provider
+// create context
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-// 4. Tạo Provider
-// Component này sẽ bọc (wrap) toàn bộ ứng dụng của bạn
+// create provider
 export function UserProvider({ children }: { children: React.ReactNode }) {
-  // Đây là nơi lưu trữ data
+  // save user state
   const [user, setUser] = useState<User | null>(null);
 
-  // Cung cấp 2 giá trị: 'user' (để get) và 'setUser' (để set)
+
   const value = {
     user,
     setUser,
@@ -31,12 +29,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 }
 
-// 5. Tạo Hook tùy chỉnh
-// Giúp bạn gọi 'get' và 'set' dễ dàng hơn
+// create hook
 export const useUser = () => {
   const context = useContext(UserContext);
   if (context === undefined) {
-    // Nếu bạn quên bọc <UserProvider>, app sẽ báo lỗi
     throw new Error("useUser must be used within a UserProvider");
   }
   return context;

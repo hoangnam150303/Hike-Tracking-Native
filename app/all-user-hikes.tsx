@@ -21,7 +21,7 @@ export default function AllUserHikesScreen() {
     const [userHikes, setUserHikes] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // 🔹 Fetch hikes khi user load
+    // Fetch hikes
     useEffect(() => {
         if (!user) return;
         fetchUserHikes();
@@ -40,7 +40,7 @@ export default function AllUserHikesScreen() {
         }
     };
 
-    // 🔹 Delete All
+    // Delete All
     const handleDeleteAll = async () => {
         if (!user) return;
         Alert.alert(
@@ -60,7 +60,7 @@ export default function AllUserHikesScreen() {
         );
     };
 
-    // 🔹 Search
+    // Search
     const handleSearch = () => {
         const keyword = search.toLowerCase();
         if (keyword.trim() === "") {
@@ -75,7 +75,7 @@ export default function AllUserHikesScreen() {
         }
     };
 
-    // 🔹 Filter
+    // Filter
     const handleFilter = (type: string) => {
         let sorted = [...userHikes];
         if (type === "length") {
@@ -88,7 +88,7 @@ export default function AllUserHikesScreen() {
         setUserHikes(sorted);
     };
 
-    // 🔹 Loading
+    // Loading
     if (loading) {
         return (
             <View style={styles.loadingContainer}>

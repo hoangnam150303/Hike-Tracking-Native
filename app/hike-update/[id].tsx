@@ -18,7 +18,7 @@ import {
     updateHike,
 } from "../../utils/dbhelper";
 
-// === Danh sách ảnh nội bộ ===
+
 const imageOptions = [
     { label: "Lake", uri: "../assets/image_hikes/lake.jpg", source: require("../../assets/image_hikes/lake.jpg") },
     { label: "View 1", uri: "../assets/image_hikes/view1.jpg", source: require("../../assets/image_hikes/view1.jpg") },
@@ -28,7 +28,6 @@ const imageOptions = [
     { label: "View 5", uri: "../assets/image_hikes/view5.webp", source: require("../../assets/image_hikes/view5.webp") },
 ];
 
-// === Helper chọn ảnh an toàn ===
 const getImageSource = (img: any) => {
     const defaultImg = require("../../assets/image_hikes/no_image.jpg");
     if (!img) return defaultImg;
@@ -60,7 +59,7 @@ export default function HikeEditScreen() {
     const [observationsList, setObservationsList] = useState<any[]>([]);
     const [showImagePicker, setShowImagePicker] = useState(false);
 
-    // === Load dữ liệu hike ===
+    // === Load data ===
     useEffect(() => {
         if (!id) {
             Alert.alert("Error", "No Hike ID found", [{ text: "OK", onPress: () => router.back() }]);
@@ -87,7 +86,6 @@ export default function HikeEditScreen() {
                 setCompanions(hikeData.companions || "");
                 setDescription(hikeData.description || "");
 
-                // ✅ Nếu ảnh là object {uri: "..."} → chọn ảnh tương ứng trong list
                 if (typeof hikeData.photo_uri === "object" && hikeData.photo_uri.uri) {
                     const found = imageOptions.find((i) => i.uri === hikeData.photo_uri.uri);
                     setImage(found || null);
@@ -106,7 +104,7 @@ export default function HikeEditScreen() {
         loadData();
     }, [id]);
 
-    // === Cập nhật hike ===
+    // === Update Hike ===
     const handleUpdateHike = async () => {
         if (!currentHikeId) return;
 
@@ -143,7 +141,7 @@ export default function HikeEditScreen() {
         }
     };
 
-    // === Thêm observation mới ===
+    // === Add new observation ===
     const handleAddObservation = async () => {
         if (!currentHikeId) return;
         if (observationText.trim() === "") {
@@ -165,7 +163,7 @@ export default function HikeEditScreen() {
         }
     };
 
-    // === Chọn ảnh ===
+
     const handleSelectImage = (option: any) => {
         setImage(option);
         setShowImagePicker(false);
